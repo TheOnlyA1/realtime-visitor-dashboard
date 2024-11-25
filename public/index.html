@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Realtime Dashboard</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      .status-in {
+        background-color: #9fe7d8;
+      }
+      .status-out {
+        background-color: #d99c9c;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-50">
+    <div class="min-h-screen flex flex-col">
+      <header class="bg-darkgrey-600 mx-auto text-white shadow-md">
+        <div class="container mx-auto px-4 py-4">
+          <h1 class="text-3xl font-bold">Realtime Dashboard</h1>
+        </div>
+      </header>
+
+      <main class="flex-grow container mx-auto px-4 py-8">
+        <div class="bg-white rounded-lg shadow-lg p-6">
+          <h2 class="text-2xl font-semibold border-b pb-4 mb-6">
+            All Entrants
+          </h2>
+          <div
+            id="visitor-list"
+            class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+          >
+            <!-- Visitor entries -->
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const ws = new WebSocket(`ws://${window.location.host}`);
+
+      ws.onmessage = ({ data }) => {
+        const parsedData = JSON.parse(data);
+        if (parsedData?.type === "visitors") {
+          updateVisitorList(parsedData.data);
+        }
+      };
+
+      const fetchVisitors = async () => {
+        try {
+          const response = await fetch("/api/visitors");
+          if (!response.ok) throw new Error("Failed to fetch visitors");
+          const data = await response.json();
+          updateVisitorList(data);
+        } catch (error) {
+          console.error("Error fetching visitors:", error);
+        }
+      };
+
+      const createVisitorCard = ({ visitor_name, timestamp, status }) => `
+        <div class="p-4 bg-gray-100 rounded-lg shadow-md flex items-center space-x-4">
+          <div class="flex-1">
+            <h3 class="text-lg font-bold">${visitor_name}</h3>
+            <p class="text-sm text-gray-500">${new Date(
+              timestamp
+            ).toLocaleString()}</p>
+          </div>
+          <span
+            class="px-3 py-1 text-sm font-semibold rounded-full ${
+              status.toLowerCase() === "in"
+                ? "bg-green-100 text-green-700"
+                : "bg-red-100 text-red-700"
+            }"
+          >
+            ${status.toUpperCase()}
+          </span>
+        </div>
+      `;
+
+      const updateVisitorList = (visitors = []) => {
+        const visitorList = document.getElementById("visitor-list");
+        visitorList.innerHTML = visitors.map(createVisitorCard).join("");
+      };
+
+      document.addEventListener("DOMContentLoaded", fetchVisitors);
+    </script>
+  </body>
+</html>
